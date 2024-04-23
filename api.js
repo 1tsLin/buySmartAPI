@@ -153,6 +153,7 @@ app.get("/products/:id", (req, res) => {
   });
 });
 
+//Create Product
 app.use("/uploads", express.static("uploads"));
 
 const multer = require("multer");
@@ -173,7 +174,6 @@ const storage = multer.diskStorage({
 // Initialize upload variable
 const upload = multer({ storage: storage });
 
-//Create Product
 app.post("/products", upload.single("image"), (req, res) => {
   const upload = multer({ storage: storage });
 
@@ -199,6 +199,44 @@ app.post("/products", upload.single("image"), (req, res) => {
       res.send("Insertion was successful");
     } else {
       console.log(err.stack);
+      res.status(500).send(err.message);
+    }
+  });
+});
+
+//Update product by Id
+app.put("/products/:id", upload.single("image"), (req, res) => {
+  const product = req.body;
+  const image = req.file;
+
+  let updateQuery = `
+    UPDATE products
+    SET 
+      name = $1, 
+      price = $2, 
+      quantity = $3, 
+      description = $4, 
+      product_type = $5, 
+      image_path = $6
+    WHERE id = $7`;
+
+  const imagePath = image ? image.path : product.existingImagePath;
+
+  let queryParams = [
+    product.name,
+    product.price,
+    product.quantity,
+    product.description,
+    product.product_type,
+    imagePath,
+    req.params.id,
+  ];
+
+  client.query(updateQuery, queryParams, (err, result) => {
+    if (!err) {
+      res.send("Update was successful");
+    } else {
+      console.log(err.message);
       res.status(500).send(err.message);
     }
   });
