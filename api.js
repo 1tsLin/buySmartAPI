@@ -2,7 +2,7 @@ const client = require("./connection.js");
 const express = require("express");
 const app = express();
 const cors = require("cors");
-
+const path = require("path");
 app.use(cors());
 
 app.listen(3300, () => {
@@ -153,11 +153,36 @@ app.get("/products/:id", (req, res) => {
   });
 });
 
+app.use("/uploads", express.static("uploads"));
+
+const multer = require("multer");
+const { v4: uuidv4 } = require("uuid");
+const PORT = 3300;
+
+// Configure storage for multer
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "./uploads"); // Ensure this uploads folder exists
+  },
+  filename: function (req, file, cb) {
+    const fileExt = path.extname(file.originalname);
+    cb(null, file.fieldname + "-" + Date.now() + fileExt);
+  },
+});
+
+// Initialize upload variable
+const upload = multer({ storage: storage });
+
 //Create Product
-app.post("/products", (req, res) => {
+app.post("/products", upload.single("image"), (req, res) => {
+  const upload = multer({ storage: storage });
+
   const product = req.body;
-  let insertQuery = `INSERT INTO products(id, name, price, quantity, description, condition, is_sold, date_publication, date_end, product_type, selling_type) 
-                     VALUES($1, $2, $3, $4, $5, $6, $7::boolean, $8, $9, $10, $11)`;
+  const image = req.file;
+  let insertQuery = `INSERT INTO products(id, name, price, quantity, description, condition, is_sold, date_publication, date_end, product_type, selling_type, image_path) 
+                     VALUES($1, $2, $3, $4, $5, $6, $7)`;
+
+  const imagePath = image ? image.path : null;
 
   let queryParams = [
     product.id,
@@ -165,57 +190,13 @@ app.post("/products", (req, res) => {
     product.price,
     product.quantity,
     product.description,
-    product.condition,
-    product.is_sold,
-    product.date_publication,
-    product.date_end,
     product.product_type,
-    product.selling_type,
+    imagePath,
   ];
 
   client.query(insertQuery, queryParams, (err, result) => {
     if (!err) {
       res.send("Insertion was successful");
-    } else {
-      console.log(err.stack);
-      res.status(500).send(err.message);
-    }
-  });
-});
-
-//Update Product Detail
-app.put("/products/:id", (req, res) => {
-  const product = req.body;
-  let updateQuery = `UPDATE products
-                     SET name = $1,
-                         price = $2,
-                         quantity = $3,
-                         description = $4,
-                         condition = $5,
-                         is_sold = $6::boolean,
-                         date_publication = $7,
-                         date_end = $8,
-                         product_type = $9,
-                         selling_type = $10
-                     WHERE id = $11`;
-
-  let queryParams = [
-    product.name,
-    product.price,
-    product.quantity,
-    product.description,
-    product.condition,
-    product.is_sold,
-    product.date_publication,
-    product.date_end,
-    product.product_type,
-    product.selling_type,
-    req.params.id,
-  ];
-
-  client.query(updateQuery, queryParams, (err, result) => {
-    if (!err) {
-      res.send("Update was successful");
     } else {
       console.log(err.stack);
       res.status(500).send(err.message);
