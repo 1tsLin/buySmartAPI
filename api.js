@@ -179,8 +179,8 @@ app.post("/products", upload.single("image"), (req, res) => {
 
   const product = req.body;
   const image = req.file;
-  let insertQuery = `INSERT INTO products(id, name, price, quantity, description, condition, is_sold, date_publication, date_end, product_type, selling_type, image_path) 
-                     VALUES($1, $2, $3, $4, $5, $6, $7)`;
+  let insertQuery = `INSERT INTO products(id, name, price, quantity, description, product_type, image_path, user_id) 
+                     VALUES($1, $2, $3, $4, $5, $6, $7, $8)`;
 
   const imagePath = image ? image.path : null;
 
@@ -192,6 +192,7 @@ app.post("/products", upload.single("image"), (req, res) => {
     product.description,
     product.product_type,
     imagePath,
+    product.user_id,
   ];
 
   client.query(insertQuery, queryParams, (err, result) => {
@@ -217,8 +218,9 @@ app.put("/products/:id", upload.single("image"), (req, res) => {
       quantity = $3, 
       description = $4, 
       product_type = $5, 
-      image_path = $6
-    WHERE id = $7`;
+      image_path = $6,
+      user_id = $7
+    WHERE id = $8`;
 
   const imagePath = image ? image.path : product.existingImagePath;
 
@@ -229,6 +231,7 @@ app.put("/products/:id", upload.single("image"), (req, res) => {
     product.description,
     product.product_type,
     imagePath,
+    product.user_id,
     req.params.id,
   ];
 
